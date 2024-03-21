@@ -41,8 +41,10 @@ public class Main {
                     // Check if a student exists
                     System.out.print("Enter student ID to check: ");
                     int idToCheck = scanner.nextInt();
-                    if (studentDao.existsById(idToCheck)) {
+                    Student checkedStudent = studentDao.existsById(idToCheck);
+                    if (checkedStudent != null) {
                         System.out.println("Student with ID " + idToCheck + " exists.");
+                        System.out.println("Student Info: " + "ID- "+ idToCheck + " "+ "NAME- " + checkedStudent.getName() + " " + "PHONE- " + checkedStudent.getPhone());
                     } else {
                         System.out.println("Student with ID " + idToCheck + " does not exist.");
                     }

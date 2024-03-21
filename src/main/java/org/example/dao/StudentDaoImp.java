@@ -18,13 +18,26 @@ public class StudentDaoImp implements StudentDao{
         }
 
         try {
-            String query = "UPDATE students SET name = ?, phone = ? WHERE id = ?";
-            try (PreparedStatement preparedStatement = con.prepareStatement(query)) {
-                preparedStatement.setString(1, student.getName());
-                preparedStatement.setString(2, student.getPhone());
-                preparedStatement.setInt(3, student.getId());
+            // Check if the student with the given ID exists
+            String checkQuery = "SELECT * FROM students WHERE id = ?";
+            try (PreparedStatement checkStatement = con.prepareStatement(checkQuery)) {
+                checkStatement.setInt(1, student.getId());
+                ResultSet resultSet = checkStatement.executeQuery();
 
-                int rowsAffected = preparedStatement.executeUpdate();
+                if (!resultSet.next()) {
+                    System.out.println("Student with ID " + student.getId() + " does not exist.");
+                    return;
+                }
+            }
+
+            // Update the student details
+            String updateQuery = "UPDATE students SET name = ?, phone = ? WHERE id = ?";
+            try (PreparedStatement updateStatement = con.prepareStatement(updateQuery)) {
+                updateStatement.setString(1, student.getName());
+                updateStatement.setString(2, student.getPhone());
+                updateStatement.setInt(3, student.getId());
+
+                int rowsAffected = updateStatement.executeUpdate();
                 if (rowsAffected > 0) {
                     System.out.println("Student updated successfully.");
                 } else {
@@ -40,22 +53,18 @@ public class StudentDaoImp implements StudentDao{
     }
 
 
-    @Override
-    public boolean existsById(int id) throws SQLException {
+    public boolean isExists(int id) throws SQLException {
         Connection con = DBConnection.getConnection();
         if (con == null) {
-            throw new SQLException("Failed to establish database connection.");
+            return false;
         }
 
         try {
-            String query = "SELECT COUNT(*) FROM students WHERE id = ?";
+            String query = "SELECT id FROM students WHERE id = ?";
             try (PreparedStatement preparedStatement = con.prepareStatement(query)) {
                 preparedStatement.setInt(1, id);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                    if (resultSet.next()) {
-                        int count = resultSet.getInt(1);
-                        return count > 0;
-                    }
+                    return resultSet.next();
                 }
             }
         } catch (SQLException e) {
@@ -64,19 +73,37 @@ public class StudentDaoImp implements StudentDao{
         } finally {
             con.close();
         }
-
-        return false;
     }
 
 
-    private boolean executeQuery(Function<Connection, Boolean> queryFunction) {
+
+
+
+    @Override
+    public Student existsById(int id) {
         Connection con = DBConnection.getConnection();
         if (con == null) {
-            return false;
+            return null;
         }
 
         try {
-            return queryFunction.apply(con);
+            String query = "SELECT * FROM students WHERE id = ?";
+            try (PreparedStatement preparedStatement = con.prepareStatement(query)) {
+                preparedStatement.setInt(1, id);
+
+                ResultSet resultSet = preparedStatement.executeQuery();
+                if (resultSet.next()) {
+                    int studentId = resultSet.getInt("id");
+                    String name = resultSet.getString("name");
+                    String phone = resultSet.getString("phone");
+                    return new Student(studentId, name, phone);
+                } else {
+                    return null;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error executing SQL query: " + e.getMessage());
+            throw new RuntimeException(e);
         } finally {
             try {
                 con.close();
